@@ -1,0 +1,30 @@
+---
+- name: "Add repo key"
+  ansible.builtin.apt_key:
+    url: "{{ couchdb_repo_key }}"
+    state: present
+
+- name: "Add couchdb repo"
+  ansible.builtin.apt_repository:
+    filename: couchdb
+    repo: "{{ couchdb_repo }}"
+    update_cache: true
+    state: present
+
+- name: "Install couchdb"
+  ansible.builtin.apt:
+    name: "{{ couchdb_version }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: couchdbInstalled
+
+- name: Reconfigure couchdb
+  ansible.builtin.debconf:
+    name: "{{ couchdb_version }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  loop: "{{ couchdb_debconf|flatten(levels=1) }}"
+  no_log: true
+  when: couchdbInstalled is changed and configure_couchdb
